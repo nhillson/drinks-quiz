@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bar Brands Flashcards</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#14110f;--panel:#1f1a17;--line:#3a312b;--ink:#f4ece1;--mute:#a89a8a;--amber:#e3a33b;--good:#5fb37a;--bad:#d9634f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(120% 60% at 50% 0,#2a201a,var(--bg));color:var(--ink);font:16px/1.4 Inter,system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;padding:16px 16px 28px}
+h1{font:800 22px Fraunces,serif;margin:4px 0 2px;letter-spacing:.2px}
+h1 span{color:var(--amber)}
+.sub{color:var(--mute);font-size:13px;margin-bottom:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 13px;border-radius:999px;font:500 14px Inter;cursor:pointer}
+.chip.on{background:var(--amber);color:#1a1209;border-color:var(--amber)}
+.bar{height:6px;background:var(--panel);border-radius:9px;overflow:hidden;margin:4px 0 6px}
+.bar i{display:block;height:100%;background:var(--amber);width:0;transition:width .3s}
+.stats{display:flex;justify-content:space-between;color:var(--mute);font-size:13px;margin-bottom:12px}
+.stats b{color:var(--ink)}
+.card{perspective:1400px;height:440px;cursor:pointer;user-select:none}
+.inner{position:relative;width:100%;height:100%;transition:transform .5s cubic-bezier(.3,.7,.2,1);transform-style:preserve-3d}
+.card.flip .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;background:linear-gradient(160deg,#2a221d,#1b1613);border:1px solid var(--line);box-shadow:0 18px 40px #0008;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;text-align:center}
+.back{transform:rotateY(180deg);justify-content:flex-start;padding-top:18px}
+.sec{position:absolute;top:14px;left:16px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mute)}
+.name{font:800 34px/1.1 Fraunces,serif}
+.say{margin-top:12px;color:var(--amber);font-size:17px;font-weight:500}
+.say:before{content:"🗣 ";opacity:.8}
+.hint{position:absolute;bottom:16px;color:var(--mute);font-size:13px}
+.bname{font:600 18px Fraunces,serif;color:var(--mute)}
+.cat{font:800 30px/1.15 Fraunces,serif;color:var(--amber);margin:4px 0 6px}
+.note{font-size:14px;color:var(--mute);margin-bottom:8px}
+.pic{flex:1;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0003;overflow:hidden}
+.pic img{max-width:100%;max-height:100%;object-fit:contain}
+.pic .ph{color:#6d6158;font-size:13px}
+.credit{font-size:10px;color:#6d6158;margin-top:6px;min-height:12px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+button.big{border:0;border-radius:14px;padding:15px;font:600 16px Inter;cursor:pointer;color:#fff}
+.miss{background:var(--bad)}.got{background:var(--good)}
+button.big:disabled{opacity:.3;cursor:default}
+.tools{display:flex;justify-content:center;gap:18px;margin-top:14px}
+.link{background:none;border:0;color:var(--mute);font:500 14px Inter;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.done{text-align:center;padding:40px 10px}
+.done .big2{font:800 54px Fraunces,serif;color:var(--amber)}
+.done p{color:var(--mute)}
+.done .row{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.done .row button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:12px 16px;font:600 15px Inter;cursor:pointer}
+.done .row button.pri{background:var(--amber);color:#1a1209;border-color:var(--amber)}
+.misslist{margin:18px auto 0;text-align:left;max-width:360px;font-size:14px;color:var(--mute)}
+.misslist div{padding:6px 0;border-bottom:1px solid var(--line)}
+.misslist b{color:var(--ink)}
+</style></head><body><div class="wrap">
+<h1>Bar Brands <span>Flashcards</span></h1>
+<div class="sub">Name the category. Say it together every time — “Jameson Irish Whiskey.”</div>
+<div class="chips" id="chips"></div>
+<div class="bar"><i id="prog"></i></div>
+<div class="stats"><span>Card <b id="pos">1</b> / <b id="tot">0</b></span><span>✓ <b id="ng">0</b> &nbsp; ✗ <b id="nm">0</b></span></div>
+<div id="stage"></div>
+<div class="tools"><button class="link" id="shuf">Shuffle & restart</button><button class="link" id="back1">Undo last</button></div>
+</div>
+<script>
+const CARDS = /*CARDS*/[];
+const IMGS = /*IMGS*/{};
+const SECS = ["All","Beer","Wine","Liquor"];
+let sec = "All", deck = [], i = 0, got = [], missed = [], hist = [], flipped = false;
+const $ = id => document.getElementById(id);
+function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.random()*(k+1)|0;[a[k],a[j]]=[a[j],a[k]]}return a}
+function start(list){deck=shuffle(list);i=0;got=[];missed=[];hist=[];render()}
+function pool(){return CARDS.filter(c=>sec==="All"||c.sec===sec)}
+function chips(){ $("chips").innerHTML = SECS.map(s=>{const n=s==="All"?CARDS.length:CARDS.filter(c=>c.sec===s).length;return `<button class="chip ${s===sec?"on":""}" data-s="${s}">${s} <span style="opacity:.6">${n}</span></button>`}).join("");
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{sec=b.dataset.s;chips();start(pool())}) }
+const esc = s => String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+function render(){
+  $("tot").textContent=deck.length; $("ng").textContent=got.length; $("nm").textContent=missed.length;
+  $("pos").textContent=Math.min(i+1,deck.length); $("prog").style.width=(deck.length?i/deck.length*100:0)+"%";
+  $("back1").style.visibility = hist.length ? "visible" : "hidden";
+  if(i>=deck.length) return finish();
+  const c=deck[i]; flipped=false;
+  const im=IMGS[c.id];
+  $("stage").innerHTML=`
+  <div class="card" id="card"><div class="inner">
+    <div class="face"><div class="sec">${c.sec}</div>
+      <div class="name">${esc(c.name)}</div>
+      ${c.say?`<div class="say">${esc(c.say)}</div>`:""}
+      <div class="hint">Tap to flip</div></div>
+    <div class="face back"><div class="sec">${c.sec}</div>
+      <div class="bname" style="margin-top:12px">${esc(c.name)}</div>
+      <div class="cat">${esc(c.cat)}</div>
+      ${c.note?`<div class="note">${esc(c.note)}</div>`:""}
+      <div class="pic">${im?`<img src="${im.src}" alt="${esc(c.name)} bottle">`:`<div class="ph">🍾<br>Photo coming soon</div>`}</div>
+      <div class="credit">${im&&im.credit?esc(im.credit):""}</div></div>
+  </div></div>
+  <div class="btns"><button class="big miss" id="bm" disabled>✗ Missed it</button><button class="big got" id="bg" disabled>✓ Got it</button></div>`;
+  $("card").onclick=flip; $("bm").onclick=()=>grade(false); $("bg").onclick=()=>grade(true);
+}
+function flip(){flipped=!flipped;$("card").classList.toggle("flip",flipped);$("bm").disabled=$("bg").disabled=false}
+function grade(ok){const c=deck[i];(ok?got:missed).push(c);hist.push(ok);i++;render()}
+$("back1").onclick=()=>{if(!hist.length)return;const ok=hist.pop();(ok?got:missed).pop();i--;render()};
+$("shuf").onclick=()=>start(pool());
+function finish(){
+  const pct=deck.length?Math.round(got.length/deck.length*100):0;
+  $("prog").style.width="100%";
+  $("stage").innerHTML=`<div class="done"><div class="big2">${pct}%</div><p>${got.length} right · ${missed.length} missed</p>
+  <div class="row">${missed.length?`<button class="pri" id="rm">Drill the ${missed.length} I missed</button>`:""}<button id="ra">Start over</button></div>
+  ${missed.length?`<div class="misslist">${missed.map(c=>`<div><b>${esc(c.name)}</b> — ${esc(c.cat)}</div>`).join("")}</div>`:""}</div>`;
+  if(missed.length) $("rm").onclick=()=>start(missed);
+  $("ra").onclick=()=>start(pool());
+}
+document.addEventListener("keydown",e=>{if(i>=deck.length)return;if(e.key===" "){e.preventDefault();flip()}else if(flipped&&(e.key==="ArrowRight"||e.key==="1"))grade(true);else if(flipped&&(e.key==="ArrowLeft"||e.key==="2"))grade(false)});
+chips(); start(pool());
+</script></body></html>
