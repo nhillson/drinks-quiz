@@ -1,5 +1,12 @@
 # Drinks Quiz
 
+Two pages, linked by the tabs at the top:
+
+- **Bottles** (`index.html`): brand-and-category flashcards
+- **Drinks** (`drinks.html`): random 1–3 drink order tickets for practicing the 50 packet recipes, with shot rounds, self-grading, missed-drink drilling, an optional timer, and optional recipe check (glass, pour, garnish, straw)
+
+## Bottles
+
 Flashcards for the Minnesota School of Bartending brand-and-category test: 185 beers, wines, and call liquors. Each card shows the brand (with a pronunciation guide where needed); flip it to see the category and a photo of the bottle.
 
 - Filter by Beer / Wine / Liquor

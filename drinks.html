@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar Ticket Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column, the printed ticket is the hero; controls below; settings in a drawer. Single dark "back bar" theme by choice. */
+:root{
+  --bg:#15130f; --panel:#201d17; --line:#3a342a; --ink:#efe7d6; --mute:#a89c85;
+  --brass:#d9a441; --paper:#f4efe3; --paperInk:#1c1a16;
+  --good:#5fb37a; --bad:#d9604a;
+  --display:"Barlow Condensed", "Arial Narrow", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);font-size:18px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:26px;letter-spacing:.06em;text-transform:uppercase;margin:0;color:var(--brass)}
+button{font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.04em;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+button.primary{background:var(--brass);color:#1a1408;border-color:var(--brass);font-size:22px;padding:14px}
+button:disabled{opacity:.4;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+
+.rail{position:relative;padding-top:10px}
+.rail::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;background:#2b2620;border-radius:4px;box-shadow:inset 0 -2px 0 #0007}
+.ticket{background:var(--paper);color:var(--paperInk);font-family:var(--mono);padding:16px 18px 22px;margin:0 10px;position:relative;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),95% 100%,90% calc(100% - 8px),85% 100%,80% calc(100% - 8px),75% 100%,70% calc(100% - 8px),65% 100%,60% calc(100% - 8px),55% 100%,50% calc(100% - 8px),45% 100%,40% calc(100% - 8px),35% 100%,30% calc(100% - 8px),25% 100%,20% calc(100% - 8px),15% 100%,10% calc(100% - 8px),5% 100%,0 calc(100% - 8px))}
+.tmeta{display:flex;justify-content:space-between;font-size:13px;border-bottom:1px dashed #0006;padding-bottom:8px;margin-bottom:10px}
+.titem{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dotted #0003}
+.titem:last-of-type{border-bottom:none}
+.qty{font-weight:600;font-size:22px;min-width:34px}
+.qty.multi{background:var(--paperInk);color:var(--paper);border-radius:4px;text-align:center;padding:0 4px}
+.dname{flex:1;font-size:19px;font-weight:600;line-height:1.2}
+.dnum{font-size:12px;opacity:.6;display:block;font-weight:400}
+.grade{display:flex;gap:6px}
+.grade button{font-family:var(--mono);padding:6px 10px;font-size:16px;background:#e6dfcf;color:var(--paperInk);border-color:#0002}
+.grade button.on.ok{background:var(--good);color:#fff}
+.grade button.on.no{background:var(--bad);color:#fff}
+.recipe{font-size:13.5px;line-height:1.45;background:#e9e2d2;border-radius:4px;padding:8px 10px;margin:0 0 8px 44px}
+.recipe .rg{font-weight:600}
+.recipe ul{margin:4px 0;padding-left:16px}
+.recipe .rf{display:flex;flex-wrap:wrap;gap:4px 14px;border-top:1px dashed #0003;padding-top:4px;margin-top:4px}
+.recipe .rn{font-style:italic;opacity:.75;margin-top:4px}
+.empty{font-size:15px;opacity:.7;padding:20px 0;text-align:center}
+.timer{font-family:var(--mono);font-size:44px;text-align:center;font-variant-numeric:tabular-nums;margin-top:6px}
+.timer small{display:block;font-size:13px;color:var(--mute);font-family:var(--display);letter-spacing:.08em;text-transform:uppercase}
+.timer.over{color:var(--bad)}
+.hint{background:var(--panel);border-left:3px solid var(--brass);padding:10px 12px;border-radius:6px;font-size:16px;color:var(--ink)}
+.hint b{color:var(--brass)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions .primary{grid-column:1/-1}
+
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 14px}
+summary{cursor:pointer;padding:10px 0;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
+fieldset{border:none;padding:0;margin:0 0 14px}
+legend{font-size:14px;color:var(--mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0}
+.chip label{display:block;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--bg);font-weight:600;cursor:pointer;user-select:none}
+.chip input:checked+label{background:var(--brass);color:#1a1408;border-color:var(--brass)}
+.chip input:focus-visible+label{outline:2px solid var(--brass);outline-offset:2px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.row p{margin:2px 0 0;font-size:14px;color:var(--mute)}
+.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--brass)}
+.row input[type=number]{width:70px;font-family:var(--mono);font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px}
+.weak{display:flex;flex-direction:column;gap:6px;padding-bottom:12px}
+.weak div{display:flex;justify-content:space-between;font-size:17px;border-bottom:1px solid var(--line);padding:4px 0}
+.weak span:last-child{font-family:var(--mono);color:var(--bad)}
+.muted{color:var(--mute);font-size:15px}
+@media (prefers-reduced-motion:no-preference){.ticket.print{animation:print .45s ease-out}@keyframes print{from{transform:translateY(-14px);opacity:.3}to{transform:none;opacity:1}}}
+.pages{display:flex;gap:6px;background:#1f1a17;border:1px solid #3a312b;border-radius:999px;padding:4px;margin-bottom:12px}.pages a{flex:1;text-align:center;padding:7px 0;border-radius:999px;color:#a89a8a;text-decoration:none;font:600 14px var(--display);letter-spacing:.02em}.pages a.on{background:#e3a33b;color:#1a1209}.pages a:focus-visible{outline:2px solid #e3a33b;outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="pages" aria-label="Pages"><a href="./">Bottles</a><a class="on" href="drinks.html" aria-current="page">Drinks</a></nav>
+  <header>
+    <h1>Bar Ticket Drill</h1>
+    <button id="speakBtn" type="button" title="Read the ticket out loud">Call it</button>
+  </header>
+
+  <div class="stats" aria-label="Session stats">
+    <div class="stat"><b id="sTickets">0</b><span>Tickets</span></div>
+    <div class="stat"><b id="sDrinks">0</b><span>Drinks</span></div>
+    <div class="stat"><b id="sAcc">–</b><span>Correct</span></div>
+    <div class="stat" id="avgStat"><b id="sAvg">–</b><span>Sec/drink</span></div>
+  </div>
+
+  <div class="rail"><div class="ticket" id="ticket"><div class="empty">Tap <b>New ticket</b> to print an order.</div></div></div>
+
+  <div class="timer" id="timer" aria-live="off">0:00<small id="par">&nbsp;</small></div>
+  <div class="hint" id="hint" hidden></div>
+
+  <div class="actions">
+    <button class="primary" id="newBtn" type="button">New ticket</button>
+    <button id="doneBtn" type="button" disabled>Served – grade it</button>
+    <button id="logBtn" type="button" disabled>Log &amp; next</button>
+  </div>
+
+  <details open>
+    <summary>Ticket settings</summary>
+    <fieldset>
+      <legend>Drinks per ticket (mix any)</legend>
+      <div class="chips" id="sizeChips"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Lessons in rotation</legend>
+      <div class="chips" id="lessonChips"></div>
+    </fieldset>
+    <div class="row"><div>Shot rounds<p>Shots sometimes come as 2 or 3</p></div><input type="checkbox" id="optShots" checked></div>
+    <div class="row"><div>Doubled cocktails<p>Now and then, 2 of the same mixed drink</p></div><input type="checkbox" id="optDoubles" checked></div>
+    <div class="row"><div>Name the pour<p>"Shot of any liquor" becomes a specific call, like Jameson or Fireball</p></div><input type="checkbox" id="optCalls" checked></div>
+    <div class="row"><div>Show packet numbers<p>Turn off to drill names only</p></div><input type="checkbox" id="optNums" checked></div>
+    <div class="row"><div>Drill my misses<p>Drinks you get wrong show up more often</p></div><input type="checkbox" id="optWeak" checked></div>
+    <div class="row"><div>Show recipes when grading<p>Glass, pour, garnish and straw from your packet, shown after you tap Served</p></div><input type="checkbox" id="optRecipe" checked></div>
+    <div class="row"><div>Build-order hint<p>Which to start first, which to finish last</p></div><input type="checkbox" id="optHint"></div>
+    <div class="row"><div>Timer<p>Turn off to practice without the clock</p></div><input type="checkbox" id="optTimer" checked></div>
+    <div class="row" id="parRow"><div>Par time per drink (sec)<p>Timer turns red past par</p></div><input type="number" id="optPar" min="10" max="180" step="5" value="45"></div>
+  </details>
+
+  <details>
+    <summary>Most missed</summary>
+    <div class="weak" id="weakList"></div>
+    <button id="resetBtn" type="button">Reset stats</button>
+    <p class="muted">Rule from your sheet: if you miss one, remake it once, mark it wrong, and move on.</p>
+  </details>
+</div>
+
+<script>
+const DRINKS = [
+  // [num, name, lesson, kind]  kind: built | shaken | stirred | shot | blend | hot | wine | bomb
+  ["7","Press",1,"built"],["2","Vodka Soda",1,"built"],["4","Scotch & Water",1,"built"],["9","Shot on Rocks",1,"stirred"],
+  ["6","Rum & Coke",1,"built"],["1","Gin & Tonic",1,"built"],["8","Shot of any Liquor",1,"shot"],["3","Whiskey Ginger",1,"built"],
+  ["5","Brandy 7",1,"built"],["8a","Shot of Tequila",1,"shot"],
+  ["15","Tequila Sunrise",2,"built"],["10","Vodka Cran",2,"built"],["16","Tom Collins",2,"built"],["11","Screwdriver",2,"built"],
+  ["17a","Shirley Temple",2,"built"],["14","Ranch Water",2,"built"],["13","Fuzzy Navel",2,"built"],["17","Dirty Shirley",2,"built"],
+  ["12","Screw-Up",2,"built"],["10a","Cape Cod",2,"built"],
+  ["20","Old Fashioned",3,"stirred"],["18","Black Russian",3,"built"],["23","Whiskey Sour",3,"shaken"],["19","Negroni",3,"stirred"],
+  ["24","Gimlet",3,"shaken"],["22","Manhattan",3,"stirred"],["21","Muddled Old Fashioned",3,"stirred"],
+  ["26","Cosmopolitan",4,"shaken"],["29","Espresso Martini",4,"shaken"],["30","Chocolate Martini",4,"shaken"],
+  ["27","Lemon Drop Martini",4,"shaken"],["25","Martini",4,"stirred"],["28","Apple Martini",4,"shaken"],
+  ["35","Green Tea",5,"shot"],["32","Kamikaze",5,"shot"],["34","White Tea",5,"shot"],["37","Royal Flush",5,"shot"],
+  ["33","Lemon Drop Shot",5,"shot"],["36","Washington Apple",5,"shot"],["38","Jag Bomb",5,"bomb"],["31","Chilled Shot",5,"shot"],
+  ["43","Strawberry Daiquiri",6,"shaken"],["41","Top Shelf Margarita",6,"shaken"],["39","Margarita",6,"shaken"],
+  ["42","Daiquiri",6,"shaken"],["40","Strawberry Margarita",6,"shaken"],
+  ["48","Moscow Mule",7,"built"],["47","Paloma",7,"built"],["44","Bloody Mary",7,"built"],["50","Glass of Wine",7,"wine"],
+  ["45","Sex On The Beach",7,"built"],["49","Irish Coffee",7,"hot"],["46","Long Island Iced Tea",7,"built"]
+];
+// Packet specs (Minnesota School of Bartending). g = glass, s = steps, gn = garnish, st = straw (packet: every drink with ice gets a straw), n = note
+const R = {
+  "1":{g:"Highball, ice",s:["1½ oz gin","Fill with tonic"],gn:"Lime",st:1,n:"Every drink with tonic gets a lime."},
+  "2":{g:"Highball, ice",s:["1½ oz vodka","Fill with club soda"],st:1},
+  "3":{g:"Highball, ice",s:["1½ oz whiskey","Fill with ginger ale"],st:1},
+  "4":{g:"Highball, ice",s:["1½ oz scotch","Fill with water"],st:1},
+  "5":{g:"Highball, ice",s:["1½ oz brandy","Fill with 7up"],st:1},
+  "6":{g:"Highball, ice",s:["1½ oz rum","Fill with Coke"],st:1},
+  "7":{g:"Highball, ice",s:["1½ oz whiskey","Fill with equal parts 7up & club soda"],st:1},
+  "8":{g:"Shooter",s:["1½ oz desired liquor"],st:0},
+  "8a":{g:"Shooter",s:["1½ oz tequila"],gn:"Salt & lime on the side",st:0},
+  "9":{g:"Lowball, ¾ full of ice",s:["1½ oz desired liquor"],st:1},
+  "10":{g:"Highball, ice",s:["1½ oz vodka","Fill with cranberry"],st:1},
+  "10a":{g:"Highball, ice",s:["1½ oz vodka","Fill with cranberry"],gn:"Lime",st:1,n:"Vodka Cran with a lime garnish."},
+  "11":{g:"Highball, ice",s:["1½ oz vodka","Fill with orange juice"],st:1},
+  "12":{g:"Highball, ice",s:["1½ oz vodka","Fill with equal parts OJ & 7up"],st:1},
+  "13":{g:"Highball, ice",s:["1½ oz peach schnapps","Fill with orange juice"],st:1},
+  "14":{g:"Tall cooler, ice",s:["1½ oz tequila","½ oz lime juice","Fill with club soda"],gn:"Lime",st:1},
+  "15":{g:"Tall cooler, ice",s:["1½ oz tequila","Fill with orange juice","Dash of grenadine (~⅓ oz)"],gn:"Cherry & orange",st:1},
+  "16":{g:"Tall cooler, ice",s:["1½ oz gin","½ oz simple syrup","½ oz lemon juice","Fill with club soda"],gn:"Cherry & lemon",st:1,n:"Some bars top with a dash of grenadine."},
+  "17":{g:"Tall cooler, ice",s:["1½ oz vodka","Fill with 7up","Dash of grenadine"],gn:"Cherry",st:1},
+  "17a":{g:"Tall cooler, ice",s:["Fill with 7up","Dash of grenadine"],gn:"Cherry",st:1,n:"Dirty Shirley without vodka. Most non-alcoholic drinks go in a tall cooler."},
+  "18":{g:"Lowball, ice",s:["1½ oz vodka","¾ oz Kahlúa"],st:1,n:"White Russian: add ~½ oz cream."},
+  "19":{g:"Lowball, ice",s:["1 oz gin","1 oz Campari","1 oz sweet vermouth"],gn:"Orange",st:1},
+  "20":{g:"Lowball",s:["2 oz whiskey","½ oz simple syrup","3 shakes Angostura","Stir","Add ice"],gn:"Cherry & orange",st:1},
+  "21":{g:"Lowball",s:["2 oz whiskey","½ oz simple syrup","3 shakes Angostura","Stir","Add cherry & orange","Muddle","Add ice"],gn:"Muddled cherry & orange in the drink",st:1},
+  "22":{g:"Chilled coupe",s:["Mixing glass, ice","2 oz whiskey","¾ oz sweet vermouth","3 shakes Angostura","Shake or stir","Strain into coupe"],gn:"Cherry",st:0,n:"Lesson 6 drinks can be ordered on the rocks: build over ice in a lowball, or shake/stir and strain over fresh ice."},
+  "23":{g:"Chilled coupe",s:["Mixing glass, ice","2 oz whiskey","½ oz simple syrup","½ oz lemon juice","Shake or stir","Strain into coupe"],gn:"Cherry",st:0,n:"With ½ oz egg white it must be shaken."},
+  "24":{g:"Chilled coupe",s:["Mixing glass, ice","2 oz gin","½ oz simple syrup","½ oz lime juice","Shake or stir","Strain into coupe"],gn:"Lime",st:0,n:"Can be ordered with vodka."},
+  "25":{g:"Chilled martini glass",s:["Mixing glass, ice","2 oz gin","½ oz dry vermouth","Shake or stir","Strain"],gn:"Olive",st:0,n:"Dirty: add a splash (~¾ oz) olive juice. Can be ordered with vodka, or on the rocks."},
+  "26":{g:"Chilled martini glass",s:["Mixing glass, ice","1½ oz citrus vodka","½ oz triple sec","½ oz lime juice","Splash of cranberry","Shake or stir","Strain"],gn:"Lemon twist",st:0},
+  "27":{g:"Chilled martini glass, sugar rim",s:["Mixing glass, ice","1½ oz citrus vodka","½ oz triple sec","½ oz simple syrup","½ oz lemon juice","Shake or stir","Strain"],gn:"Lemon twist",st:0},
+  "28":{g:"Chilled martini glass",s:["Mixing glass, ice","1½ oz vodka","½ oz sour apple schnapps","½ oz simple syrup","½ oz lemon juice","Shake or stir","Strain"],gn:"Cherry",st:0},
+  "29":{g:"Chilled martini glass",s:["Mixing glass, ice","1½ oz vodka","½ oz Kahlúa","~1 oz chilled espresso / dark coffee","Shake","Strain"],st:0,n:"Espresso must be chilled. Some bars garnish with espresso beans."},
+  "30":{g:"Chilled martini glass",s:["Mixing glass, ice","1½ oz vodka","¾ oz dark crème de cacao","¾ oz Baileys","Shake","Strain"],gn:"Chocolate",st:0},
+  "31":{g:"Shooter",s:["Mixing glass, ice","1½ oz desired liquor","Shake","Strain"],st:0},
+  "32":{g:"Shooter",s:["Mixing glass, ice","1½ oz vodka","½ oz triple sec","½ oz lime juice","Shake","Strain"],st:0,n:"Flavored: ¾ oz vodka + ¾ oz flavored liqueur."},
+  "33":{g:"Shooter, sugar rim",s:["Mixing glass, ice","1½ oz vodka","½ oz simple syrup","½ oz lemon juice","Shake","Strain"],st:0},
+  "34":{g:"Shooter",s:["Mixing glass, ice","¾ oz vodka","¾ oz peach schnapps","Dash simple syrup","Dash lemon juice","Splash of 7up","Shake","Strain"],st:0},
+  "35":{g:"Shooter",s:["Mixing glass, ice","¾ oz Irish whiskey","¾ oz peach schnapps","Dash simple syrup","Dash lemon juice","Splash of 7up","Shake","Strain"],st:0},
+  "36":{g:"Shooter",s:["Mixing glass, ice","¾ oz whiskey","¾ oz sour apple schnapps","Splash of cranberry","Shake","Strain"],st:0},
+  "37":{g:"Shooter",s:["Mixing glass, ice","¾ oz whiskey","¾ oz peach schnapps","Splash of cranberry","Shake","Strain"],st:0},
+  "38":{g:"Lowball + shot glass",s:["Fill lowball ⅓ with Red Bull","Fill shot glass with Jägermeister","Drop shot glass into Red Bull"],st:0,n:"Dirty Jag Bomb: 1 oz Jäger in a shooter, top with ~2 oz Red Bull."},
+  "39":{g:"Fiesta glass, salt rim",s:["Mixing glass, ice","1½ oz tequila","½ oz triple sec","½ oz simple syrup","1 oz lime juice","Shake","Pour into fiesta glass"],gn:"Lime",st:1,n:"Lessons 11 & 12 can also be blended."},
+  "40":{g:"Fiesta glass, sugar rim",s:["Mixing glass, ice","1½ oz tequila","½ oz triple sec","½ oz simple syrup","1 oz lime juice","1 oz strawberry mix","Shake","Pour into fiesta glass"],gn:"Lime",st:1},
+  "41":{g:"Fiesta glass, salt rim",s:["Mixing glass, ice","1½ oz premium tequila","½ oz Grand Marnier","½ oz simple syrup","1 oz lime juice","Shake","Pour into fiesta glass"],gn:"Lime",st:1,n:"Some bars use Cointreau instead of Grand Marnier."},
+  "42":{g:"Fiesta glass",s:["Mixing glass, ice","2 oz rum","½ oz simple syrup","1 oz lime juice","Shake","Pour into fiesta glass"],gn:"Lime",st:1},
+  "43":{g:"Fiesta glass",s:["Mixing glass, ice","2 oz rum","½ oz simple syrup","1 oz lime juice","1 oz strawberry mix","Shake","Pour into fiesta glass"],gn:"Lime",st:1},
+  "44":{g:"Tall cooler, ice",s:["1½ oz vodka","3 shakes Tabasco","3 shakes Worcestershire","Fill with tomato juice"],gn:"Lime & olive",st:1,n:"Some bars use Bloody Mary mix."},
+  "45":{g:"Tall cooler, ice",s:["¾ oz vodka","¾ oz peach schnapps","Fill with equal parts OJ & cranberry"],gn:"Cherry & orange",st:1},
+  "46":{g:"Tall cooler, ice",s:["½ oz each: gin, vodka, rum, tequila, triple sec","½ oz simple syrup","½ oz lemon juice","Fill with Coke"],gn:"Lemon",st:1},
+  "47":{g:"Tall cooler, salt rim, ice",s:["1½ oz tequila","½ oz simple syrup","½ oz lime juice","Fill with equal parts grapefruit & club soda"],gn:"Lime",st:1},
+  "48":{g:"Copper mug, ice",s:["1½ oz vodka","½ oz lime juice","Fill with ginger beer"],gn:"Lime",st:1},
+  "49":{g:"Hot drink glass",s:["1½ oz Irish whiskey","1 packet sugar","Fill ¾ with coffee","Stir","Top with whipped cream"],st:0},
+  "50":{g:"Wine glass",s:["5–6 oz desired wine"],st:0}
+};
+function recipeHTML(num){
+  const r=R[num]; if(!r) return "";
+  return `<div class="recipe"><div class="rg">${r.g}</div><ul>${r.s.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <div class="rf"><span><b>Garnish:</b> ${r.gn||"None"}</span><span><b>Straw:</b> ${r.st?"Yes":"No"}</span></div>
+    ${r.n?`<div class="rn">${r.n}</div>`:""}</div>`;
+}
+const LESSONS = {1:"1 & 2",2:"3 & 4",3:"5 & 6",4:"7 & 8",5:"9 & 10",6:"11 & 12",7:"13 & 14"};
+const CALLS = {
+  "8":["Jameson","Fireball","Tito's","Jack Daniel's","Crown Royal","Captain Morgan","Malibu","Rumple Minze","Well whiskey","Well vodka"],
+  "8a":["Well tequila","Patrón","Jose Cuervo","Casamigos","1800"],
+  "9":["Crown","Jack","Jameson","Maker's Mark","Johnnie Walker Black","Baileys","Tito's"],
+  "31":["Tito's","Jameson","Fireball","Patrón","Grey Goose","Crown Apple"],
+  "50":["house red","house white","Cabernet","Chardonnay","Pinot Grigio","Merlot"]
+};
+const ORDER = {blend:0,hot:1,stirred:2,shaken:3,built:4,wine:5,shot:6,bomb:7};
+const ORDER_TIP = {
+  blend:"Start the blender first so it runs while you build the rest.",
+  hot:"Get the hot drink going early.",
+  stirred:"Stirred drinks before shaken. They sit fine for a minute.",
+  shaken:"Shake after stirred drinks are done.",
+  built:"Build the highballs next. Pour carbonated mixers last so they stay fizzy.",
+  wine:"Wine can go anytime. Pour it while something else is blending or shaking.",
+  shot:"Shots go last, poured side by side in one pass.",
+  bomb:"Drop the bomb last, right at the hand-off."
+};
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k,d){try{const v=localStorage.getItem("btd_"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem("btd_"+k,JSON.stringify(v))}catch(e){}}
+};
+let settings = Object.assign({sizes:[1,2,3],lessons:[1,2,3,4,5,6,7],shots:true,doubles:true,calls:true,nums:true,weak:true,hint:false,timer:true,recipes:true,par:45}, store.get("settings",{}));
+let stats = Object.assign({tickets:0,drinks:0,right:0,graded:0,secs:0,miss:{},seen:{}}, store.get("stats",{}));
+let ticket=null, t0=0, elapsed=0, tick=null, ticketNo=store.get("no",100);
+
+function saveSettings(){store.set("settings",settings)}
+function saveStats(){store.set("stats",stats)}
+
+// ---- settings UI ----
+function chip(container,id,label,checked,on){
+  const d=document.createElement("div");d.className="chip";
+  d.innerHTML=`<input type="checkbox" id="${id}" ${checked?"checked":""}><label for="${id}">${label}</label>`;
+  d.querySelector("input").addEventListener("change",e=>on(e.target.checked,e.target));
+  container.appendChild(d);
+}
+[1,2,3].forEach(n=>chip($("sizeChips"),"size"+n,n+(n===1?" drink":" drinks"),settings.sizes.includes(n),(c,el)=>{
+  if(c) settings.sizes.push(n); else if(settings.sizes.length>1) settings.sizes=settings.sizes.filter(x=>x!==n); else el.checked=true;
+  saveSettings();
+}));
+Object.entries(LESSONS).forEach(([k,v])=>chip($("lessonChips"),"les"+k,"Lesson "+v,settings.lessons.includes(+k),(c,el)=>{
+  if(c) settings.lessons.push(+k); else if(settings.lessons.length>1) settings.lessons=settings.lessons.filter(x=>x!==+k); else el.checked=true;
+  saveSettings();
+}));
+[["optShots","shots"],["optDoubles","doubles"],["optCalls","calls"],["optNums","nums"],["optWeak","weak"],["optHint","hint"],["optTimer","timer"],["optRecipe","recipes"]].forEach(([id,k])=>{
+  $(id).checked=settings[k];
+  $(id).addEventListener("change",e=>{settings[k]=e.target.checked;saveSettings();applyTimerVis();if(ticket)renderTicket(false)});
+});
+function applyTimerVis(){
+  const on=settings.timer;
+  $("timer").hidden=!on; $("parRow").hidden=!on; $("avgStat").hidden=!on;
+  document.querySelector(".stats").style.gridTemplateColumns=on?"repeat(4,1fr)":"repeat(3,1fr)";
+}
+applyTimerVis();
+$("optPar").value=settings.par;
+$("optPar").addEventListener("change",e=>{settings.par=Math.max(10,Math.min(180,+e.target.value||45));e.target.value=settings.par;saveSettings();updateTimer()});
+
+// ---- ticket generation ----
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function weightFor(d){
+  let w=1;
+  if(settings.weak){const m=stats.miss[d[0]]||0; w+=m*2;}
+  if(!stats.seen[d[0]]) w+=1; // nudge toward drinks you haven't made yet
+  return w;
+}
+function weightedPick(pool,exclude){
+  const opts=pool.filter(d=>!exclude.has(d[0]));
+  const list=opts.length?opts:pool;
+  let total=list.reduce((s,d)=>s+weightFor(d),0), r=Math.random()*total;
+  for(const d of list){r-=weightFor(d);if(r<=0)return d}
+  return list[list.length-1];
+}
+function newTicket(){
+  const pool=DRINKS.filter(d=>settings.lessons.includes(d[2]));
+  const n=pick(settings.sizes);
+  const used=new Set(), items=[];
+  for(let i=0;i<n;i++){
+    const d=weightedPick(pool,used); used.add(d[0]);
+    let qty=1;
+    if((d[3]==="shot"||d[3]==="bomb") && settings.shots){const r=Math.random(); qty=r<.35?1:r<.7?2:3;}
+    else if(settings.doubles && d[3]!=="shot" && Math.random()<.12) qty=2;
+    let call=null;
+    if(settings.calls && CALLS[d[0]]) call=pick(CALLS[d[0]]);
+    items.push({num:d[0],name:d[1],kind:d[3],qty,call,grade:null});
+  }
+  ticketNo++; store.set("no",ticketNo);
+  ticket={no:ticketNo,items,time:new Date(),graded:false};
+  renderTicket(true);
+  startTimer();
+  $("doneBtn").disabled=false; $("logBtn").disabled=true;
+  if(settings.hint) showHint(); else $("hint").hidden=true;
+}
+function displayName(it){
+  if(!it.call) return it.name;
+  if(it.num==="8"||it.num==="8a") return "Shot of "+it.call;
+  if(it.num==="9") return it.call+" on the rocks";
+  if(it.num==="31") return "Chilled shot of "+it.call;
+  if(it.num==="50") return "Glass of "+it.call;
+  return it.name;
+}
+function renderTicket(anim){
+  const el=$("ticket");
+  if(!ticket){return}
+  const hh=ticket.time.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+  const count=ticket.items.reduce((s,i)=>s+i.qty,0);
+  el.innerHTML=`<div class="tmeta"><span>TKT #${ticket.no}</span><span>${count} drink${count>1?"s":""}</span><span>${hh}</span></div>`+
+    ticket.items.map((it,i)=>`<div class="titem">
+      <span class="qty ${it.qty>1?"multi":""}">${it.qty}×</span>
+      <span class="dname">${displayName(it)}${settings.nums?`<span class="dnum">#${it.num}${it.call?" · "+it.name:""}</span>`:""}</span>
+      ${ticket.graded?`<span class="grade"><button type="button" class="ok ${it.grade===true?"on":""}" data-i="${i}" data-g="1" aria-label="Made correctly">✓</button><button type="button" class="no ${it.grade===false?"on":""}" data-i="${i}" data-g="0" aria-label="Made incorrectly">✗</button></span>`:""}
+    </div>${ticket.graded&&settings.recipes?recipeHTML(it.num):""}`).join("");
+  if(anim){el.classList.remove("print");void el.offsetWidth;el.classList.add("print")}
+  el.querySelectorAll(".grade button").forEach(b=>b.addEventListener("click",()=>{
+    ticket.items[+b.dataset.i].grade = b.dataset.g==="1";
+    renderTicket(false);
+    $("logBtn").disabled = ticket.items.some(x=>x.grade===null);
+  }));
+}
+function showHint(){
+  const kinds=[...new Set(ticket.items.map(i=>i.kind))].sort((a,b)=>ORDER[a]-ORDER[b]);
+  const seq=[...ticket.items].sort((a,b)=>ORDER[a.kind]-ORDER[b.kind]).map(displayName);
+  let html = ticket.items.length>1 ? `<b>Build order:</b> ${seq.join(" → ")}<br>` : "";
+  html += ORDER_TIP[kinds[0]];
+  if(kinds.length>1) html += " " + ORDER_TIP[kinds[kinds.length-1]];
+  $("hint").innerHTML=html; $("hint").hidden=false;
+}
+
+// ---- timer ----
+function parTotal(){return ticket?ticket.items.reduce((s,i)=>s+(i.kind==="shot"?Math.min(i.qty,2):i.qty),0)*settings.par:0}
+function fmt(s){return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0")}
+function updateTimer(){
+  $("timer").firstChild.nodeValue=fmt(elapsed);
+  const p=parTotal();
+  $("par").textContent = ticket ? "Par "+fmt(p) : " ";
+  $("timer").classList.toggle("over", ticket && elapsed>p);
+}
+function startTimer(){
+  clearInterval(tick); t0=performance.now(); elapsed=0; updateTimer();
+  tick=setInterval(()=>{elapsed=(performance.now()-t0)/1000;updateTimer()},250);
+}
+function stopTimer(){clearInterval(tick);tick=null;elapsed=(performance.now()-t0)/1000;updateTimer()}
+
+// ---- flow ----
+$("newBtn").addEventListener("click",()=>{
+  if(ticket && ticket.graded && !ticket.logged && !ticket.items.some(x=>x.grade===null)) logTicket();
+  newTicket();
+});
+$("doneBtn").addEventListener("click",()=>{
+  if(!ticket) return;
+  stopTimer(); ticket.graded=true; ticket.secs=elapsed; renderTicket(false);
+  $("doneBtn").disabled=true;
+});
+$("logBtn").addEventListener("click",()=>{logTicket();newTicket()});
+function logTicket(){
+  if(!ticket||ticket.logged) return;
+  ticket.logged=true;
+  const count=ticket.items.reduce((s,i)=>s+i.qty,0);
+  stats.tickets++; stats.drinks+=count; stats.secs+=ticket.secs;
+  ticket.items.forEach(it=>{
+    stats.graded++; stats.seen[it.num]=(stats.seen[it.num]||0)+1;
+    if(it.grade){stats.right++; if(stats.miss[it.num]) stats.miss[it.num]=Math.max(0,stats.miss[it.num]-1);}
+    else stats.miss[it.num]=(stats.miss[it.num]||0)+1;
+  });
+  saveStats(); renderStats();
+}
+function renderStats(){
+  $("sTickets").textContent=stats.tickets;
+  $("sDrinks").textContent=stats.drinks;
+  $("sAcc").textContent=stats.graded?Math.round(stats.right/stats.graded*100)+"%":"–";
+  $("sAvg").textContent=stats.drinks?Math.round(stats.secs/stats.drinks):"–";
+  const misses=Object.entries(stats.miss).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  $("weakList").innerHTML = misses.length
+    ? misses.map(([n,v])=>{const d=DRINKS.find(x=>x[0]===n);return `<div><span>#${n} ${d?d[1]:""}</span><span>${v} miss${v>1?"es":""}</span></div>`}).join("")
+    : `<p class="muted">No misses logged yet. A miss drops off after you make that drink right again.</p>`;
+}
+$("resetBtn").addEventListener("click",()=>{
+  if($("resetBtn").dataset.arm){stats={tickets:0,drinks:0,right:0,graded:0,secs:0,miss:{},seen:{}};saveStats();renderStats();$("resetBtn").textContent="Reset stats";delete $("resetBtn").dataset.arm}
+  else{$("resetBtn").dataset.arm=1;$("resetBtn").textContent="Tap again to reset";setTimeout(()=>{$("resetBtn").textContent="Reset stats";delete $("resetBtn").dataset.arm},3000)}
+});
+
+// ---- read it out loud like a server ----
+const WORDS={1:"one",2:"two",3:"three"};
+$("speakBtn").addEventListener("click",()=>{
+  if(!ticket) return;
+  try{
+    const text=ticket.items.map(it=>{
+      let n=displayName(it);
+      if(it.qty>1){
+        if(/^Shot of /.test(n)) n=n.replace(/^Shot of /,"shots of ");
+        else if(/^Chilled shot of /.test(n)) n=n.replace(/^Chilled shot of /,"chilled shots of ");
+        else if(/(Shot|Bomb)$/.test(n)) n+="s";
+        n=WORDS[it.qty]+" "+n;
+      }
+      return n;
+    }).join(", ");
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance("Order in. "+text.replace(/&/g,"and")); u.rate=1.05;
+    speechSynthesis.speak(u);
+  }catch(e){}
+});
+
+renderStats();
+newTicket();
+</script>
+</body>
+</html>
