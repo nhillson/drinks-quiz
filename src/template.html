@@ -50,6 +50,9 @@ button.big:disabled{opacity:.3;cursor:default}
 .misslist{margin:18px auto 0;text-align:left;max-width:360px;font-size:14px;color:var(--mute)}
 .misslist div{padding:6px 0;border-bottom:1px solid var(--line)}
 .misslist b{color:var(--ink)}
+.spk{margin-top:14px;border:1px solid var(--line);background:#0004;color:var(--ink);border-radius:999px;padding:8px 16px;font:500 14px Inter;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.spk:active{transform:scale(.96)}
+.spk.sm{margin:2px 0 8px;padding:5px 12px;font-size:13px}
 </style></head><body><div class="wrap">
 <h1>Bar Brands <span>Flashcards</span></h1>
 <div class="sub">Name the category. Say it together every time — “Jameson Irish Whiskey.”</div>
@@ -62,6 +65,24 @@ button.big:disabled{opacity:.3;cursor:default}
 <script>
 const CARDS = /*CARDS*/[];
 const IMGS = /*IMGS*/{};
+
+const TTS = (()=>{try{return "speechSynthesis" in window && typeof SpeechSynthesisUtterance!=="undefined"}catch(e){return false}})();
+let VOICE=null;
+function pickVoice(){try{const vs=speechSynthesis.getVoices().filter(v=>/^en[-_]US/i.test(v.lang));
+  const pref=[/natural/i,/premium|enhanced/i,/google us english/i,/samantha|ava|allison|aria|jenny|guy/i];
+  for(const r of pref){const v=vs.find(v=>r.test(v.name));if(v)return v}return vs[0]||null}catch(e){return null}}
+if(TTS){VOICE=pickVoice();try{speechSynthesis.onvoiceschanged=()=>{VOICE=pickVoice()}}catch(e){}}
+// Read the pronunciation guide rather than the spelling: "KWAN-troh" -> "kwantroh"
+function sayText(c){
+  if(!c.say) return c.name.replace(/ \((flavor|PBR|EPA)\)/,"").replace("&"," and ");
+  return c.say.replace(/\(.*?\)/g,"").split(/\s+/).map(w=>w.replace(/-/g,"")).join(" ").toLowerCase().trim();
+}
+function speak(c,withCat){
+  try{speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(sayText(c)+(withCat?", "+c.cat.replace("  or  "," or ").replace("I.P.A.","I P A").replace("/"," "):""));
+    if(VOICE)u.voice=VOICE; u.lang="en-US"; u.rate=0.9; speechSynthesis.speak(u);
+  }catch(e){}
+}
 const SECS = ["All","Beer","Wine","Liquor"];
 let sec = "All", deck = [], i = 0, got = [], missed = [], hist = [], flipped = false;
 const $ = id => document.getElementById(id);
@@ -83,16 +104,19 @@ function render(){
     <div class="face"><div class="sec">${c.sec}</div>
       <div class="name">${esc(c.name)}</div>
       ${c.say?`<div class="say">${esc(c.say)}</div>`:""}
+      ${TTS?`<button class="spk" data-sp="front">🔊 Say it</button>`:""}
       <div class="hint">Tap to flip</div></div>
     <div class="face back"><div class="sec">${c.sec}</div>
       <div class="bname" style="margin-top:12px">${esc(c.name)}</div>
       <div class="cat">${esc(c.cat)}</div>
       ${c.note?`<div class="note">${esc(c.note)}</div>`:""}
+      ${TTS?`<button class="spk sm" data-sp="back">🔊 ${esc(c.name.replace(/ \((flavor|PBR|EPA)\)/,""))} ${esc(c.cat)}</button>`:""}
       <div class="pic">${im?`<img src="${im.src}" alt="${esc(c.name)} bottle">`:`<div class="ph">🍾<br>Photo coming soon</div>`}</div>
       <div class="credit">${im&&im.credit?esc(im.credit):""}</div></div>
   </div></div>
   <div class="btns"><button class="big miss" id="bm" disabled>✗ Missed it</button><button class="big got" id="bg" disabled>✓ Got it</button></div>`;
-  $("card").onclick=flip; $("bm").onclick=()=>grade(false); $("bg").onclick=()=>grade(true);
+  $("card").onclick=flip;
+  document.querySelectorAll(".spk").forEach(b=>b.onclick=e=>{e.stopPropagation();speak(c,b.dataset.sp==="back")}); $("bm").onclick=()=>grade(false); $("bg").onclick=()=>grade(true);
 }
 function flip(){flipped=!flipped;$("card").classList.toggle("flip",flipped);$("bm").disabled=$("bg").disabled=false}
 function grade(ok){const c=deck[i];(ok?got:missed).push(c);hist.push(ok);i++;render()}
