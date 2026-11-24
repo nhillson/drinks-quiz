@@ -368,14 +368,19 @@ function stopTimer(){clearInterval(tick);tick=null;elapsed=(performance.now()-t0
 // ---- flow ----
 $("newBtn").addEventListener("click",()=>{
   if(ticket && ticket.graded && !ticket.logged && !ticket.items.some(x=>x.grade===null)) logTicket();
-  newTicket();
+  newTicket(); scrollToTicket();
 });
 $("doneBtn").addEventListener("click",()=>{
   if(!ticket) return;
   stopTimer(); ticket.graded=true; ticket.secs=elapsed; renderTicket(false);
   $("doneBtn").disabled=true;
 });
-$("logBtn").addEventListener("click",()=>{logTicket();newTicket()});
+$("logBtn").addEventListener("click",()=>{logTicket();newTicket();scrollToTicket()});
+function scrollToTicket(){
+  const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const y=document.querySelector(".rail").getBoundingClientRect().top+window.scrollY;
+  window.scrollTo({top:y,behavior:reduce?"auto":"smooth"});
+}
 function logTicket(){
   if(!ticket||ticket.logged) return;
   ticket.logged=true;
