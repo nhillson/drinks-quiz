@@ -374,6 +374,7 @@ $("doneBtn").addEventListener("click",()=>{
   if(!ticket) return;
   stopTimer(); ticket.graded=true; ticket.secs=elapsed; renderTicket(false);
   $("doneBtn").disabled=true;
+  scrollToTicket();
 });
 $("logBtn").addEventListener("click",()=>{logTicket();newTicket();scrollToTicket()});
 function scrollToTicket(){
