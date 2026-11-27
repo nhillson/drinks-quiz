@@ -433,5 +433,18 @@ $("speakBtn").addEventListener("click",()=>{
 renderStats();
 newTicket();
 </script>
+<script>
+/* Keep the screen awake while this page is open (Screen Wake Lock API). */
+(function(){
+  let lock=null;
+  async function grab(){
+    if(!("wakeLock" in navigator)||document.visibilityState!=="visible"||lock) return;
+    try{ lock=await navigator.wakeLock.request("screen"); lock.addEventListener("release",()=>{lock=null}); }catch(e){}
+  }
+  document.addEventListener("visibilitychange",grab);
+  ["click","touchend","keydown"].forEach(ev=>document.addEventListener(ev,grab,{passive:true}));
+  grab();
+})();
+</script>
 </body>
 </html>

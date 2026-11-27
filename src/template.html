@@ -111,4 +111,17 @@ function finish(){
 }
 document.addEventListener("keydown",e=>{if(i>=deck.length)return;if(e.key===" "){e.preventDefault();flip()}else if(flipped&&(e.key==="ArrowRight"||e.key==="1"))grade(true);else if(flipped&&(e.key==="ArrowLeft"||e.key==="2"))grade(false)});
 chips(); start(pool());
-</script></body></html>
+</script><script>
+/* Keep the screen awake while this page is open (Screen Wake Lock API). */
+(function(){
+  let lock=null;
+  async function grab(){
+    if(!("wakeLock" in navigator)||document.visibilityState!=="visible"||lock) return;
+    try{ lock=await navigator.wakeLock.request("screen"); lock.addEventListener("release",()=>{lock=null}); }catch(e){}
+  }
+  document.addEventListener("visibilitychange",grab);
+  ["click","touchend","keydown"].forEach(ev=>document.addEventListener(ev,grab,{passive:true}));
+  grab();
+})();
+</script>
+</body></html>
